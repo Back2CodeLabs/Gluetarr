@@ -88,7 +88,9 @@ function buildDashboardGroup(inst) {
         </div>
         <div class="card-body">
           <div class="stat-row"><span class="stat-label">Public IP</span><span class="stat-value mono" id="i${id}-ip-address">–</span></div>
-          <div class="stat-row"><span class="stat-label">Exit country (configured)</span><span class="stat-value" id="i${id}-ip-country">–</span></div>
+          <div class="stat-row"><span class="stat-label">Country (geolocation)</span><span class="stat-value" id="i${id}-ip-country">–</span></div>
+          <div class="stat-row"><span class="stat-label">City (geolocation)</span><span class="stat-value" id="i${id}-ip-city">–</span></div>
+          <div class="stat-row"><span class="stat-label">Organisation</span><span class="stat-value" id="i${id}-ip-org">–</span></div>
         </div>
       </div>
 
@@ -221,8 +223,9 @@ function updatePanel(inst, health) {
   setEl(`i${id}-banner-sub`, sub);
 
   setEl(`i${id}-ip-address`, ip?.public_ip ?? ip?.ip ?? ip?.IP ?? '–');
-  const cfgSel = s?.provider?.server_selection;
-  setEl(`i${id}-ip-country`, cfgSel?.countries?.length ? cfgSel.countries.join(', ') : (s ? 'Any' : '–'));
+  setEl(`i${id}-ip-country`, ip?.country ?? '–');
+  setEl(`i${id}-ip-city`, ip?.city ?? '–');
+  setEl(`i${id}-ip-org`, ip?.org ?? ip?.organization ?? '–');
 
   setEl(`i${id}-vpn-status`,   d?.status ?? '–');
   setEl(`i${id}-vpn-provider`, s?.provider?.name ?? '–');
@@ -259,6 +262,8 @@ function updatePanelError(inst) {
   setEl(`i${id}-banner-sub`, 'Could not reach Gluetun control API');
   setEl(`i${id}-ip-address`, '–');
   setEl(`i${id}-ip-country`, '–');
+  setEl(`i${id}-ip-city`, '–');
+  setEl(`i${id}-ip-org`, '–');
   setEl(`i${id}-vpn-status`, '–');
   setEl(`i${id}-vpn-provider`, '–');
   setEl(`i${id}-vpn-server`, '–');
