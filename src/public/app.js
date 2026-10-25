@@ -13,6 +13,22 @@ function $(id) { return document.getElementById(id); }
 function setText(id, val) { const el = $(id); if (el) el.textContent = val ?? '–'; }
 function setEl(id, val)   { const el = document.getElementById(id); if (el) el.textContent = val ?? '–'; }
 
+// ---- Country flags ----
+// Flags are regional-indicator emoji built from the ISO code. Windows browsers
+// have no native flag glyphs, so style.css loads a small bundled font for them.
+const countryCodes  = new Map();  // country name -> ISO 3166-1 alpha-2 code
+const countryLabels = new Map();  // country name -> display label (Gluetun misspells some)
+function flagEmoji(code) {
+  if (!/^[A-Za-z]{2}$/.test(code ?? '')) return '';
+  return String.fromCodePoint(...[...code.toUpperCase()].map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65));
+}
+function withFlag(name) {
+  if (!name || name === '–') return name;
+  const flag  = flagEmoji(countryCodes.get(name));
+  const label = countryLabels.get(name) ?? name;
+  return flag ? `${flag} ${label}` : label;
+}
+
 function escHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -165,9 +181,11 @@ function buildDashboardGroup(inst) {
     const select = group.querySelector(`#i${id}-country-select`);
     inst.countries.forEach(c => {
       const name = typeof c === 'string' ? c : c.name;   // tolerate the old API shape
+      if (c && c.code) countryCodes.set(name, c.code);
+      if (c && c.label) countryLabels.set(name, c.label);
       const opt = document.createElement('option');
       opt.value = name;
-      opt.textContent = (c && c.label) || name;
+      opt.textContent = withFlag(name);
       select.appendChild(opt);
     });
     select.addEventListener('change', () => { select.dataset.touched = '1'; });
@@ -224,7 +242,7 @@ function updatePanel(inst, health) {
   setEl(`i${id}-banner-sub`, sub);
 
   setEl(`i${id}-ip-address`, ip?.public_ip ?? ip?.ip ?? ip?.IP ?? '–');
-  setEl(`i${id}-ip-country`, ip?.country ?? '–');
+  setEl(`i${id}-ip-country`, withFlag(ip?.country ?? '–'));
   setEl(`i${id}-ip-city`, ip?.city ?? '–');
   setEl(`i${id}-ip-org`, ip?.org ?? ip?.organization ?? '–');
 
@@ -237,7 +255,7 @@ function updatePanel(inst, health) {
     ?? s?.provider?.server_selection?.names?.[0]
     ?? '–');
   const sel = s?.provider?.server_selection;
-  setEl(`i${id}-vpn-country`, sel?.countries?.length ? sel.countries.join(', ') : (s ? 'Any' : '–'));
+  setEl(`i${id}-vpn-country`, sel?.countries?.length ? sel.countries.map(withFlag).join(', ') : (s ? 'Any' : '–'));
   setEl(`i${id}-vpn-city`, sel?.cities?.length ? sel.cities.join(', ') : (s ? 'Any' : '–'));
 
   const select = document.getElementById(`i${id}-country-select`);

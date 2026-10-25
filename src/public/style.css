@@ -1,3 +1,14 @@
+/* Country flags: Windows browsers lack flag glyphs. This font (a subset of Twemoji
+   Mozilla, via country-flag-emoji-polyfill) is only used for flag emoji thanks to
+   unicode-range. See NOTICE.md for the license/attribution. */
+@font-face {
+  font-family: 'Twemoji Country Flags';
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E0063, U+E0065, U+E0067,
+    U+E006C, U+E006E, U+E0073-E0074, U+E0077, U+E007F;
+  src: url('/fonts/TwemojiCountryFlags.woff2') format('woff2');
+  font-display: swap;
+}
+
 /* Reset & base */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -20,7 +31,7 @@ html { font-size: 15px; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: 'Twemoji Country Flags', 'Segoe UI', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   min-height: 100vh;
 }
@@ -77,6 +88,7 @@ button:hover { background: var(--border); }
   color: var(--muted);
 }
 select {
+  font-family: inherit;
   background: var(--surface2);
   color: var(--text);
   border: 1px solid var(--border);

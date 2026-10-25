@@ -2,7 +2,7 @@
 > (based on upstream commit `268a3f3`). Changes in this fork: allowlisted
 > **country switching** through Gluetun's control server, selected-country
 > display, and deployment examples (see [`deploy/`](deploy/)).
-> Upstream code is MIT-licensed (see `LICENSE-UPSTREAM-MIT`).
+> Upstream code is MIT-licensed (see `LICENSE-UPSTREAM-MIT`); third-party notices in `NOTICE.md`.
 
 
 <div align="right">
