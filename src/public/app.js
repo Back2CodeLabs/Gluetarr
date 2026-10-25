@@ -88,8 +88,8 @@ function buildDashboardGroup(inst) {
         </div>
         <div class="card-body">
           <div class="stat-row"><span class="stat-label">Public IP</span><span class="stat-value mono" id="i${id}-ip-address">–</span></div>
-          <div class="stat-row"><span class="stat-label">Country</span><span class="stat-value" id="i${id}-ip-country">–</span></div>
-          <div class="stat-row"><span class="stat-label">City</span><span class="stat-value" id="i${id}-ip-city">–</span></div>
+          <div class="stat-row"><span class="stat-label">Country (geolocation)</span><span class="stat-value" id="i${id}-ip-country">–</span></div>
+          <div class="stat-row"><span class="stat-label">City (geolocation)</span><span class="stat-value" id="i${id}-ip-city">–</span></div>
           <div class="stat-row"><span class="stat-label">Organisation</span><span class="stat-value" id="i${id}-ip-org">–</span></div>
         </div>
       </div>
@@ -105,8 +105,8 @@ function buildDashboardGroup(inst) {
           <div class="stat-row"><span class="stat-label">Provider</span><span class="stat-value" id="i${id}-vpn-provider">–</span></div>
           <div class="stat-row"><span class="stat-label">Server</span><span class="stat-value mono" id="i${id}-vpn-server">–</span></div>
           <div class="stat-row"><span class="stat-label">Protocol</span><span class="stat-value" id="i${id}-vpn-protocol">–</span></div>
-          <div class="stat-row"><span class="stat-label">Country</span><span class="stat-value" id="i${id}-vpn-country">–</span></div>
-          <div class="stat-row"><span class="stat-label">City</span><span class="stat-value" id="i${id}-vpn-city">–</span></div>
+          <div class="stat-row"><span class="stat-label">Selected country</span><span class="stat-value" id="i${id}-vpn-country">–</span></div>
+          <div class="stat-row"><span class="stat-label">Selected city</span><span class="stat-value" id="i${id}-vpn-city">–</span></div>
           <div class="stat-row country-switch hidden" id="i${id}-country-switch">
             <span class="stat-label">Switch country</span>
             <span class="stat-value">
@@ -235,8 +235,9 @@ function updatePanel(inst, health) {
     ?? s?.provider?.server_selection?.hostnames?.[0]
     ?? s?.provider?.server_selection?.names?.[0]
     ?? '–');
-  setEl(`i${id}-vpn-country`, ip?.country ?? '–');
-  setEl(`i${id}-vpn-city`, ip?.city ?? '–');
+  const sel = s?.provider?.server_selection;
+  setEl(`i${id}-vpn-country`, sel?.countries?.length ? sel.countries.join(', ') : (s ? 'Any' : '–'));
+  setEl(`i${id}-vpn-city`, sel?.cities?.length ? sel.cities.join(', ') : (s ? 'Any' : '–'));
 
   const select = document.getElementById(`i${id}-country-select`);
   const selected = s?.provider?.server_selection?.countries?.[0];
