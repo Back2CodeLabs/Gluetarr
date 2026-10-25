@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gluetun-WebUI</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="15" stroke="#4ade80" stroke-width="2"/>
+          <path d="M16 8 L16 24 M8 16 L24 16" stroke="#4ade80" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="16" cy="16" r="4" fill="#4ade80"/>
+        </svg>
+        <span>Gluetun-webui</span>
+      </div>
+      <div class="header-right">
+        <span id="last-updated" class="muted">–</span>
+        <button id="refresh-btn" title="Refresh now">&#x21bb; Refresh</button>
+        <label class="auto-refresh-label" title="Auto-refresh interval">
+          <span>Auto</span>
+          <select id="refresh-interval">
+            <option value="0">Off</option>
+            <option value="5000">5s</option>
+            <option value="10000" selected>10s</option>
+            <option value="30000">30s</option>
+            <option value="60000">60s</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <!-- Instance tabs – hidden when only one instance is configured -->
+  <nav id="instance-tabs" class="instance-tabs hidden" aria-label="Gluetun instances"></nav>
+
+  <main>
+    <div id="dashboards-container" class="dashboards-container"></div>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
