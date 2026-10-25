@@ -37,7 +37,8 @@ services:
     environment:
       GLUETUN_CONTROL_URL: http://gluetun:8000
       GLUETUN_API_KEY: ${GLUETUN_API_KEY}
-      ALLOWED_COUNTRIES: France,Romania,Panama
+      # Explicit list, or "all" for every Surfshark WireGuard country (src/countries.json)
+      ALLOWED_COUNTRIES: all
     ports:
       - "<LAN_IP>:3000:3000"               # LAN only: the UI has no authentication
     read_only: true

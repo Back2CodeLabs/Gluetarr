@@ -73,16 +73,28 @@ const instances = parseInstances();
 const instanceMap = new Map(instances.map(inst => [inst.id, inst]));
 
 // --- Country switching (optional) ---
-// ALLOWED_COUNTRIES="France,Romania,Panama" enables the "switch country" control.
-// Only these exact names can ever be sent to Gluetun; empty = feature disabled.
-const ALLOWED_COUNTRIES = (process.env.ALLOWED_COUNTRIES || '')
-  .split(',').map(c => c.trim()).filter(Boolean);
+// ALLOWED_COUNTRIES enables the "switch country" control. Only these exact
+// names can ever be sent to Gluetun. Empty = feature disabled.
+//   ALLOWED_COUNTRIES="France,Romania,Panama"   explicit list
+//   ALLOWED_COUNTRIES=all                       every Surfshark WireGuard country
+//                                               (catalogue in src/countries.json)
+const CATALOGUE = JSON.parse(fs.readFileSync(path.join(__dirname, 'countries.json'), 'utf8')).countries;
+const CODE_BY_NAME = new Map(CATALOGUE.map(c => [c.name, c.code]));
+const LABEL_BY_NAME = new Map(CATALOGUE.filter(c => c.label).map(c => [c.name, c.label]));
+const rawAllowed = (process.env.ALLOWED_COUNTRIES || '').trim();
+const ALLOWED_COUNTRIES = rawAllowed.toLowerCase() === 'all'
+  ? CATALOGUE.map(c => c.name)
+  : rawAllowed.split(',').map(c => c.trim()).filter(Boolean);
 for (const c of ALLOWED_COUNTRIES) {
   if (!/^[A-Za-z][A-Za-z .'-]{1,39}$/.test(c)) {
     console.error(`[startup] Invalid country in ALLOWED_COUNTRIES: ${c}`);
     process.exit(1);
   }
 }
+// Sent to the browser: name + ISO 3166-1 alpha-2 code (null when unknown) for the flag
+const COUNTRY_OPTIONS = ALLOWED_COUNTRIES
+  .map(name => ({ name, code: CODE_BY_NAME.get(name) || null, label: LABEL_BY_NAME.get(name) || name }))
+  .sort((a, b) => a.label.localeCompare(b.label));
 const switching = new Set(); // instance ids with a switch in progress
 
 function buildAuthHeadersFor(instance) {
@@ -181,7 +193,7 @@ async function fetchInstanceHealth(instance) {
 
 // --- Instance list endpoint ---
 app.get('/api/instances', (req, res) => {
-  res.json(instances.map(({ id, name }) => ({ id, name, countries: ALLOWED_COUNTRIES })));
+  res.json(instances.map(({ id, name }) => ({ id, name, countries: COUNTRY_OPTIONS })));
 });
 
 // --- Per-instance health endpoint ---

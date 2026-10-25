@@ -164,9 +164,10 @@ function buildDashboardGroup(inst) {
   if (Array.isArray(inst.countries) && inst.countries.length > 0) {
     const select = group.querySelector(`#i${id}-country-select`);
     inst.countries.forEach(c => {
+      const name = typeof c === 'string' ? c : c.name;   // tolerate the old API shape
       const opt = document.createElement('option');
-      opt.value = c;
-      opt.textContent = c;
+      opt.value = name;
+      opt.textContent = (c && c.label) || name;
       select.appendChild(opt);
     });
     select.addEventListener('change', () => { select.dataset.touched = '1'; });
