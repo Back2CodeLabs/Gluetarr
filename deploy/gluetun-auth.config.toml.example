@@ -1,0 +1,19 @@
+# Mounted read-only in the Gluetun container at /gluetun/auth/config.toml
+# Generate the key with:  docker run --rm qmcgaw/gluetun genkey
+# Then put the SAME key in the web UI's GLUETUN_API_KEY. Never commit the real key.
+#
+# Read-only routes are enough for monitoring. "PUT /v1/vpn/settings" is the only
+# write permission needed for the country switch. Add "PUT /v1/vpn/status" only
+# if you want the Start/Stop buttons to work.
+[[roles]]
+name = "webui"
+routes = [
+  "GET /v1/vpn/status",
+  "GET /v1/publicip/ip",
+  "GET /v1/portforward",
+  "GET /v1/dns/status",
+  "GET /v1/vpn/settings",
+  "PUT /v1/vpn/settings",
+]
+auth = "apikey"
+apikey = "CHANGE_ME"

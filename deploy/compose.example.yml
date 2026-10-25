@@ -1,0 +1,46 @@
+# Example: Gluetun + web UI with country switching.
+# Put secrets in a .env file next to this file (never commit it):
+#   GLUETUN_API_KEY=...   (same key as in gluetun-auth/config.toml)
+#   WIREGUARD_PRIVATE_KEY=...  WIREGUARD_ADDRESSES=...
+#   IPINFO_TOKEN=...      (free ipinfo.io token, avoids public-IP lookup bans)
+services:
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    restart: unless-stopped
+    cap_add: [NET_ADMIN]
+    devices: [/dev/net/tun:/dev/net/tun]
+    environment:
+      TZ: Europe/Paris
+      VPN_SERVICE_PROVIDER: surfshark
+      VPN_TYPE: wireguard
+      WIREGUARD_PRIVATE_KEY: ${WIREGUARD_PRIVATE_KEY}
+      WIREGUARD_ADDRESSES: ${WIREGUARD_ADDRESSES}
+      SERVER_COUNTRIES: France            # default; the UI changes it at runtime
+      # Control server (port 8000) reachable by the web UI container only
+      FIREWALL_INPUT_PORTS: 8000
+      # Shared VPN exit IPs get rate-limited by lookup services, and Gluetun bans
+      # a source for 30 days after a 429/403. A token on the first source avoids it.
+      PUBLICIP_API: ipinfo,ifconfigco,ip2location,cloudflare
+      PUBLICIP_API_TOKEN: ${IPINFO_TOKEN}
+    volumes:
+      - ./gluetun:/gluetun
+      - ./gluetun-auth/config.toml:/gluetun/auth/config.toml:ro
+
+  gluetun-webui:
+    build: ..                              # build this repository
+    container_name: gluetun-webui
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      GLUETUN_CONTROL_URL: http://gluetun:8000
+      GLUETUN_API_KEY: ${GLUETUN_API_KEY}
+      ALLOWED_COUNTRIES: France,Romania,Panama
+    ports:
+      - "<LAN_IP>:3000:3000"               # LAN only: the UI has no authentication
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]

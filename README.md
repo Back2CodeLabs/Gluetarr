@@ -1,3 +1,9 @@
+> **Gluetarr** is a fork of [Sir-Scuzza/gluetun-webui](https://github.com/Sir-Scuzza/gluetun-webui)
+> (based on upstream commit `268a3f3`). Changes in this fork: allowlisted
+> **country switching** through Gluetun's control server, selected-country
+> display, and deployment examples (see [`deploy/`](deploy/)).
+> Upstream code is MIT-licensed (see `LICENSE-UPSTREAM-MIT`).
+
 
 <div align="right">
   <details>
