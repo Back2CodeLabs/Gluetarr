@@ -1,11 +1,9 @@
 name: Publish Docker Image
 
 on:
-  push:
-    tags:
-      - 'v*'
-    branches:
-      - main
+  # Upstream publishes on every push to main/tags. This fork has no Docker Hub
+  # credentials configured, so only run it manually (and set the
+  # DOCKERHUB_USERNAME / DOCKERHUB_TOKEN secrets first if you want to use it).
   workflow_dispatch:
 
 jobs:
