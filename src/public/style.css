@@ -296,3 +296,7 @@ main {
   .dashboard-grid { grid-template-columns: 1fr; }
   .banner-actions { flex-direction: column; }
 }
+
+/* ---- Country switch ---- */
+.country-switch.hidden { display: none; }
+.country-switch .stat-value { display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; }

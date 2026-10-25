@@ -72,6 +72,19 @@ function parseInstances() {
 const instances = parseInstances();
 const instanceMap = new Map(instances.map(inst => [inst.id, inst]));
 
+// --- Country switching (optional) ---
+// ALLOWED_COUNTRIES="France,Romania,Panama" enables the "switch country" control.
+// Only these exact names can ever be sent to Gluetun; empty = feature disabled.
+const ALLOWED_COUNTRIES = (process.env.ALLOWED_COUNTRIES || '')
+  .split(',').map(c => c.trim()).filter(Boolean);
+for (const c of ALLOWED_COUNTRIES) {
+  if (!/^[A-Za-z][A-Za-z .'-]{1,39}$/.test(c)) {
+    console.error(`[startup] Invalid country in ALLOWED_COUNTRIES: ${c}`);
+    process.exit(1);
+  }
+}
+const switching = new Set(); // instance ids with a switch in progress
+
 function buildAuthHeadersFor(instance) {
   if (instance.apiKey) {
     return { 'X-API-Key': instance.apiKey };
@@ -121,10 +134,10 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '2kb' }));
 app.use(uiLimiter, express.static(path.join(__dirname, 'public')));
 
-async function gluetunFetch(instance, endpoint, method = 'GET', body = null) {
+async function gluetunFetch(instance, endpoint, method = 'GET', body = null, { timeoutMs = 5000, asText = false } = {}) {
   const url = `${instance.url}${endpoint}`;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const opts = {
     method,
     signal: controller.signal,
@@ -141,7 +154,7 @@ async function gluetunFetch(instance, endpoint, method = 'GET', body = null) {
       const text = await res.text().catch(() => '');
       throw new Error(`Gluetun returned ${res.status}${text ? ': ' + text.slice(0, 200).trim() : ''}`);
     }
-    return res.json();
+    return asText ? (await res.text()).trim() : res.json();
   } finally {
     clearTimeout(timeoutId);
   }
@@ -168,7 +181,7 @@ async function fetchInstanceHealth(instance) {
 
 // --- Instance list endpoint ---
 app.get('/api/instances', (req, res) => {
-  res.json(instances.map(({ id, name }) => ({ id, name })));
+  res.json(instances.map(({ id, name }) => ({ id, name, countries: ALLOWED_COUNTRIES })));
 });
 
 // --- Per-instance health endpoint ---
@@ -260,6 +273,60 @@ const staticLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { ok: false, error: 'Too many requests, please try again later.' },
+});
+
+// --- Per-instance country switch ---
+// Calls Gluetun's PUT /v1/vpn/settings: the tunnel restarts inside the same
+// container, so containers sharing its network namespace are not recreated.
+const countryLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many requests, please try again later.' },
+});
+
+function requireSameOrigin(req, res, next) {
+  const origin = req.headers.origin;
+  if (origin) {
+    let host = null;
+    try { host = new URL(origin).host; } catch (_) {}
+    if (host !== req.headers.host) return res.status(403).json({ ok: false, error: 'Forbidden origin' });
+  }
+  if (!req.is('application/json')) return res.status(415).json({ ok: false, error: 'JSON body required' });
+  next();
+}
+
+app.put('/api/:instanceId/vpn/country', countryLimiter, requireSameOrigin, async (req, res) => {
+  const instance = resolveInstance(req.params.instanceId);
+  if (!instance) return res.status(400).json({ ok: false, error: 'Unknown instance ID' });
+  if (ALLOWED_COUNTRIES.length === 0) {
+    return res.status(404).json({ ok: false, error: 'Country switching is disabled' });
+  }
+  const country = req.body && req.body.country;
+  if (typeof country !== 'string' || !ALLOWED_COUNTRIES.includes(country)) {
+    return res.status(400).json({ ok: false, error: 'Country not allowed' });
+  }
+  if (switching.has(instance.id)) {
+    return res.status(409).json({ ok: false, error: 'A switch is already in progress' });
+  }
+  switching.add(instance.id);
+  try {
+    const outcome = await gluetunFetch(
+      instance,
+      '/v1/vpn/settings',
+      'PUT',
+      { provider: { server_selection: { countries: [country] } } },
+      { timeoutMs: 45000, asText: true }
+    );
+    console.log(`[switch][${instance.id}] country -> ${country} from ${req.ip}: ${outcome}`);
+    res.json({ ok: true, data: { outcome } });
+  } catch (err) {
+    console.error(`[upstream][${instance.id}]`, err.message);
+    res.status(502).json({ ok: false, error: 'Upstream error' });
+  } finally {
+    switching.delete(instance.id);
+  }
 });
 
 // --- Per-instance VPN control ---

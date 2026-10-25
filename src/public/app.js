@@ -107,6 +107,13 @@ function buildDashboardGroup(inst) {
           <div class="stat-row"><span class="stat-label">Protocol</span><span class="stat-value" id="i${id}-vpn-protocol">–</span></div>
           <div class="stat-row"><span class="stat-label">Country</span><span class="stat-value" id="i${id}-vpn-country">–</span></div>
           <div class="stat-row"><span class="stat-label">City</span><span class="stat-value" id="i${id}-vpn-city">–</span></div>
+          <div class="stat-row country-switch hidden" id="i${id}-country-switch">
+            <span class="stat-label">Switch country</span>
+            <span class="stat-value">
+              <select id="i${id}-country-select" aria-label="Country"></select>
+              <button type="button" id="i${id}-btn-country" class="btn-success">Switch</button>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -152,6 +159,20 @@ function buildDashboardGroup(inst) {
   `;
   group.querySelector(`#i${id}-btn-start`).addEventListener('click', () => vpnAction(id, 'start'));
   group.querySelector(`#i${id}-btn-stop`).addEventListener('click', () => vpnAction(id, 'stop'));
+
+  // Optional country switcher (only when the server exposes an allowlist)
+  if (Array.isArray(inst.countries) && inst.countries.length > 0) {
+    const select = group.querySelector(`#i${id}-country-select`);
+    inst.countries.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      select.appendChild(opt);
+    });
+    select.addEventListener('change', () => { select.dataset.touched = '1'; });
+    group.querySelector(`#i${id}-country-switch`).classList.remove('hidden');
+    group.querySelector(`#i${id}-btn-country`).addEventListener('click', () => switchCountry(id));
+  }
   return group;
 }
 
@@ -216,6 +237,12 @@ function updatePanel(inst, health) {
     ?? '–');
   setEl(`i${id}-vpn-country`, ip?.country ?? '–');
   setEl(`i${id}-vpn-city`, ip?.city ?? '–');
+
+  const select = document.getElementById(`i${id}-country-select`);
+  const selected = s?.provider?.server_selection?.countries?.[0];
+  if (select && selected && !select.dataset.touched && !select.disabled) {
+    if ([...select.options].some(o => o.value === selected)) select.value = selected;
+  }
 
   const port = portForwarded?.ok ? (portForwarded.data?.port ?? 0) : 0;
   setEl(`i${id}-port-number`, port > 0 ? String(port) : portForwarded?.ok ? 'Not forwarded' : 'N/A');
@@ -298,6 +325,42 @@ async function vpnAction(instanceId, action) {
     }
   } catch (err) {
     showToast(`${name}: Request failed: ${err.message}`, 'error', 5000);
+  }
+}
+
+async function switchCountry(instanceId) {
+  const inst   = instances.find(i => i.id === instanceId);
+  const name   = inst?.name ?? instanceId;
+  const select = document.getElementById(`i${instanceId}-country-select`);
+  const btn    = document.getElementById(`i${instanceId}-btn-country`);
+  const country = select?.value;
+  if (!country) return;
+  if (!window.confirm(`Switch ${name} to ${country}?\nThe tunnel restarts and connections through it are interrupted for a few seconds.`)) return;
+
+  select.disabled = true;
+  btn.disabled = true;
+  showToast(`${name}: switching to ${country}…`, 'info', 20000);
+  try {
+    const res  = await fetch(`/api/${instanceId}/vpn/country`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ country }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(`${name}: now switching to ${country}`, 'success', 5000);
+      delete select.dataset.touched;
+      // The tunnel needs a few seconds to come back up
+      setTimeout(async () => { await pollAll(); scheduleNextPoll(); }, 5000);
+      setTimeout(async () => { await pollAll(); scheduleNextPoll(); }, 15000);
+    } else {
+      showToast(`${name}: ${data.error ?? 'Unknown error'}`, 'error', 6000);
+    }
+  } catch (err) {
+    showToast(`${name}: Request failed: ${err.message}`, 'error', 6000);
+  } finally {
+    select.disabled = false;
+    btn.disabled = false;
   }
 }
 
